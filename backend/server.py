@@ -58,7 +58,7 @@ class ClaimRequest(BaseModel):
 
 
 class InquiryInput(BaseModel):
-    customer_id: Optional[str] = None
+    customer_id: str
     manager_id: str
     offering: str
     date: str
@@ -196,6 +196,9 @@ async def create_inquiry(input: InquiryInput):
     manager = await db.managers.find_one({"manager_id": input.manager_id}, {"_id": 0})
     if not manager:
         raise HTTPException(status_code=404, detail="Manager not found")
+    customer = await db.customers.find_one({"customer_id": input.customer_id}, {"_id": 0})
+    if not customer:
+        raise HTTPException(status_code=401, detail="A valid membership is required to contact a manager")
     inquiry = {"inquiry_id": f"inq_{uuid.uuid4().hex[:10]}", **input.model_dump(), "status": "Received", "created_at": now_iso()}
     await db.inquiries.insert_one(inquiry.copy())
     return {"inquiry_id": inquiry["inquiry_id"], "status": "Received", "message": f"{manager['name']} will get back to you shortly."}

@@ -28,5 +28,5 @@ export const api = {
   managers: () => request<Manager[]>("/managers"),
   signIn: (payload: { name: string; email: string; phone: string }) => request<Customer>("/auth/sign-in", { method: "POST", body: JSON.stringify(payload) }),
   claim: (offerId: string, customerId: string) => request<Redemption>(`/offers/${offerId}/claim`, { method: "POST", body: JSON.stringify({ customer_id: customerId }) }),
-  inquiry: (payload: { customer_id?: string; manager_id: string; offering: string; date: string; guests: string; note: string }) => request<{ inquiry_id: string; status: string; message: string }>("/inquiries", { method: "POST", body: JSON.stringify(payload) }),
+  inquiry: (payload: { customer_id: string; manager_id: string; offering: string; date: string; guests: string; note: string }) => request<{ inquiry_id: string; status: string; message: string }>("/inquiries", { method: "POST", body: JSON.stringify(payload) }),
 };

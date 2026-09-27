@@ -37,12 +37,12 @@ export function SignInModal({ visible, onClose }: { visible: boolean; onClose: (
   };
   return <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalRoot}>
-      <View style={styles.sheet}>
-        <View style={styles.sheetTop}><View><Text style={styles.eyebrow}>LUMIÈRE PRIVILÈGE</Text><Text style={styles.sheetTitle}>Your table awaits.</Text></View><Pressable onPress={onClose} style={styles.close} accessibilityLabel="Close sign in"><Text style={styles.closeText}>×</Text></Pressable></View>
+      <View style={styles.sheet} testID="sign-in-modal">
+        <View style={styles.sheetTop}><View><Text style={styles.eyebrow}>LUMIÈRE PRIVILÈGE</Text><Text style={styles.sheetTitle}>Your table awaits.</Text></View><Pressable onPress={onClose} style={styles.close} accessibilityLabel="Close sign in" testID="auth-close"><Text style={styles.closeText}>×</Text></Pressable></View>
         <Text style={styles.sheetCopy}>Sign in or join free to unlock member pricing, a digital card and one-time offers.</Text>
-        {[['name', 'Full name'], ['email', 'Email address'], ['phone', 'Mobile number']].map(([key, placeholder]) => <TextInput key={key} value={form[key as keyof typeof form]} onChangeText={(value) => setForm((prev) => ({ ...prev, [key]: value }))} placeholder={placeholder} placeholderTextColor={colors.muted} style={styles.input} autoCapitalize={key === "name" ? "words" : "none"} keyboardType={key === "email" ? "email-address" : key === "phone" ? "phone-pad" : "default"} />)}
+        {[['name', 'Full name'], ['email', 'Email address'], ['phone', 'Mobile number']].map(([key, placeholder]) => <TextInput key={key} testID={`auth-${key}`} value={form[key as keyof typeof form]} onChangeText={(value) => setForm((prev) => ({ ...prev, [key]: value }))} placeholder={placeholder} placeholderTextColor={colors.muted} style={styles.input} autoCapitalize={key === "name" ? "words" : "none"} keyboardType={key === "email" ? "email-address" : key === "phone" ? "phone-pad" : "default"} />)}
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Pressable onPress={submit} disabled={busy} style={({ pressed }) => [styles.primary, pressed && styles.pressed, busy && styles.disabled]}><Text style={styles.primaryText}>{busy ? "Securing your membership…" : "Join & save"}</Text></Pressable>
+        <Pressable onPress={submit} disabled={busy} testID="auth-submit" style={({ pressed }) => [styles.primary, pressed && styles.pressed, busy && styles.disabled]}><Text style={styles.primaryText}>{busy ? "Securing your membership…" : "Join & save"}</Text></Pressable>
         <Text style={styles.legal}>Your details stay with Sip ’N’ Dine and help us tailor your visits.</Text>
       </View>
     </KeyboardAvoidingView>
