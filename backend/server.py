@@ -191,6 +191,29 @@ async def verify_redemption(redemption_id: str, input: VerificationInput):
     return {"success": True, "message": "Privilege verified successfully."}
 
 
+@api_router.post("/redemptions/verify")
+async def verify_redemption_by_code(input: VerificationInput):
+    """Staff panel entry: verify by six-digit code alone."""
+    redemption = await db.redemptions.find_one({"code": input.code}, {"_id": 0})
+    if not redemption:
+        raise HTTPException(status_code=404, detail="Code not found. Ask the guest to generate a fresh one.")
+    if redemption["status"] == "redeemed":
+        raise HTTPException(status_code=409, detail="This code was already redeemed.")
+    if redemption["expires_at"] <= now_iso():
+        raise HTTPException(status_code=410, detail="This code has expired. Ask the guest to generate a new one.")
+    offer = await db.offers.find_one({"offer_id": redemption["offer_id"]}, {"_id": 0})
+    customer = await db.customers.find_one({"customer_id": redemption["customer_id"]}, {"_id": 0})
+    await db.redemptions.update_one({"redemption_id": redemption["redemption_id"]}, {"$set": {"status": "redeemed", "redeemed_at": now_iso()}})
+    return {
+        "success": True,
+        "message": "Privilege verified. Apply the discount at billing.",
+        "offer_title": offer["title"] if offer else "Member offer",
+        "discount": offer["discount"] if offer else "",
+        "member_name": customer["name"] if customer else "Member",
+        "member_tier": customer.get("tier", "Signature") if customer else "Signature",
+    }
+
+
 @api_router.post("/inquiries")
 async def create_inquiry(input: InquiryInput):
     manager = await db.managers.find_one({"manager_id": input.manager_id}, {"_id": 0})

@@ -1,4 +1,4 @@
-// Design tokens for the Lumière Privilège dark hospitality club.
+// Design tokens for the Sip 'N' Dine warm hospitality club.
 //
 // The keys match the "color" block of /app/design_guidelines.json. Fill the
 // values from that file (or from the user's brand colors). Keep every key; do
@@ -37,52 +37,50 @@ export type ColorScheme = "light" | "dark";
 
 const dark = {
   // ---------------------------------------------------------------------------
-  // Surfaces: backgrounds, from the screen down to small fills.
-  // Each `on` key is the text and icon color for that background.
+  // Surfaces: warm dark brown palette pulled from the client's walkthrough.
   // ---------------------------------------------------------------------------
-  surface: "#0C0E12",
-  onSurface: "#F4F5F7",
-  surfaceSecondary: "#161922",
-  onSurfaceSecondary: "#E2E4E9",
-  surfaceTertiary: "#222634",
-  onSurfaceTertiary: "#A0A4B0",
-  surfaceInverse: "#FFFFFF",
-  onSurfaceInverse: "#0C0E12",
-  muted: "#8C92A0",
+  surface: "#2A1E18",
+  onSurface: "#F5EEDC",
+  surfaceSecondary: "#3A2A24",
+  onSurfaceSecondary: "#E8DCCF",
+  surfaceTertiary: "#4E3A30",
+  onSurfaceTertiary: "#C9B8A2",
+  surfaceInverse: "#F5EEDC",
+  onSurfaceInverse: "#2A1E18",
+  muted: "#B09A80",
 
   // ---------------------------------------------------------------------------
-  // Brand: the identity color and the fills built from it.
-  // Neutral by default; replace with the design guidelines values.
+  // Brand: golden beige accents from the walkthrough hero and CTA buttons.
   // ---------------------------------------------------------------------------
-  brand: "#D4AF37",
-  onBrand: "#0C0E12",
-  brandPrimary: "#D4AF37",
-  onBrandPrimary: "#0C0E12",
-  brandSecondary: "#C59B27",
-  onBrandSecondary: "#0C0E12",
-  brandTertiary: "#332B14",
-  onBrandTertiary: "#F4F5F7",
+  brand: "#D4A86A",
+  onBrand: "#2A1E18",
+  brandPrimary: "#D4A86A",
+  onBrandPrimary: "#2A1E18",
+  brandSecondary: "#C1924F",
+  onBrandSecondary: "#2A1E18",
+  brandTertiary: "#5E4739",
+  onBrandTertiary: "#F5EEDC",
 
   // ---------------------------------------------------------------------------
   // Status: semantic only, never decorative. Fill for badges, banners and
   // toasts; the `on` key is text on that fill. The plain key is also safe as
   // text on `surface`.
   // ---------------------------------------------------------------------------
-  success: "#2E7D32",
-  onSuccess: "#FFFFFF",
-  warning: "#F57C00",
-  onWarning: "#FFFFFF",
-  error: "#D32F2F",
-  onError: "#FFFFFF",
-  info: "#0288D1",
-  onInfo: "#FFFFFF",
+  success: "#4C7A3C",
+  onSuccess: "#F5EEDC",
+  warning: "#D68B3A",
+  onWarning: "#2A1E18",
+  error: "#C0533A",
+  onError: "#F5EEDC",
+  info: "#8A6FBF",
+  onInfo: "#F5EEDC",
 
   // ---------------------------------------------------------------------------
   // Lines
   // ---------------------------------------------------------------------------
-  border: "#2A2F3D",
-  borderStrong: "#D4AF37",
-  divider: "#1E2330",
+  border: "#4E3A30",
+  borderStrong: "#D4A86A",
+  divider: "#3A2A24",
 };
 
 export type ThemeColors = typeof dark;
@@ -122,5 +120,3 @@ export function makeStyles<T extends StyleSheet.NamedStyles<T> | StyleSheet.Name
     return useMemo(() => StyleSheet.create(factory(colors)), [colors]);
   };
 }
-
-

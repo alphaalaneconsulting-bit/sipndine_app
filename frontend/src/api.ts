@@ -29,4 +29,5 @@ export const api = {
   signIn: (payload: { name: string; email: string; phone: string }) => request<Customer>("/auth/sign-in", { method: "POST", body: JSON.stringify(payload) }),
   claim: (offerId: string, customerId: string) => request<Redemption>(`/offers/${offerId}/claim`, { method: "POST", body: JSON.stringify({ customer_id: customerId }) }),
   inquiry: (payload: { customer_id: string; manager_id: string; offering: string; date: string; guests: string; note: string }) => request<{ inquiry_id: string; status: string; message: string }>("/inquiries", { method: "POST", body: JSON.stringify(payload) }),
+  verifyCode: (code: string) => request<{ success: boolean; message: string; offer_title: string; discount: string; member_name: string; member_tier: string }>("/redemptions/verify", { method: "POST", body: JSON.stringify({ code }) }),
 };

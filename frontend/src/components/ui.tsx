@@ -25,7 +25,7 @@ export function SectionTitle({ eyebrow, title, action, onAction }: { eyebrow?: s
 
 export function GoldHero({ eyebrow, title, caption, children }: { eyebrow: string; title: string; caption: string; children?: React.ReactNode }) {
   const styles = useStyles();
-  return <LinearGradient colors={["#332B14", "#161922", "#0C0E12"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}><View style={styles.heroGlow} /><Text style={styles.heroEyebrow}>{eyebrow}</Text><Text style={styles.heroTitle}>{title}</Text><Text style={styles.heroCaption}>{caption}</Text>{children}</LinearGradient>;
+  return <LinearGradient colors={["#5E4739", "#3A2A24", "#2A1E18"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}><View style={styles.heroGlow} /><Text style={styles.heroEyebrow}>{eyebrow}</Text><Text style={styles.heroTitle}>{title}</Text><Text style={styles.heroCaption}>{caption}</Text>{children}</LinearGradient>;
 }
 
 export function StatusPill({ label, tone = "brand" }: { label: string; tone?: "brand" | "success" | "muted" }) {
@@ -43,7 +43,7 @@ const useStyles = makeStyles((colors) => ({
   sectionTitle: { color: colors.onSurface, fontSize: 22, fontWeight: "700" },
   action: { color: colors.brand, fontSize: 13, fontWeight: "700", paddingVertical: 8 },
   hero: { minHeight: 218, borderRadius: 24, padding: 22, overflow: "hidden", justifyContent: "flex-end" },
-  heroGlow: { position: "absolute", width: 180, height: 180, borderRadius: 90, right: -30, top: -38, backgroundColor: "rgba(212,175,55,0.12)" },
+  heroGlow: { position: "absolute", width: 180, height: 180, borderRadius: 90, right: -30, top: -38, backgroundColor: "rgba(212,168,106,0.18)" },
   heroEyebrow: { color: colors.brand, fontSize: 11, letterSpacing: 1.6, fontWeight: "800", marginBottom: 10 },
   heroTitle: { color: colors.onSurface, fontSize: 31, lineHeight: 35, fontWeight: "700", maxWidth: 290 },
   heroCaption: { color: colors.onSurfaceSecondary, fontSize: 14, lineHeight: 21, marginTop: 10, maxWidth: 290 },

@@ -1,0 +1,30 @@
+{
+  "summary": "Full end-to-end regression for Sip 'N' Dine rebrand passed. Backend: 12/12 pytest cases green (home shape + hero eyebrow 'SIP \\u2019N\\u2019 DINE \\u00b7 SECTOR 7', all list endpoints hygiene, sign-in, buffet-sunday claim yields 6-digit code + 60s expiry, /redemptions/verify success returns offer_title/discount/member_name, replay -> 409, unknown '000000' -> 404, /inquiries with bogus customer_id -> 401, valid customer -> 200 Received). Frontend (Playwright, mobile 375x812): Home renders warm brown theme with hero, gold promo banner, 9 tag cards, admin entry, and 'Call the house' footer; home-tag-offers routes to /offers; unauthenticated tap on offer-claim-buffet-sunday opens sign-in-modal; filling auth-name/email/phone and tapping auth-submit signs the guest in and closes the modal; second tap opens redemption-modal with a live 6-digit code; entering it on /admin via admin-key-{digit} keypad and tapping admin-verify displays admin-success card with 'QA Tester \\u00b7 Signature', 'Sunday slow brunch', '20% off'. No console/pageerror observed. No _id leakage anywhere.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sip_n_dine.py",
+    "/app/test_reports/pytest/pytest_results.xml",
+    "/app/test_reports/admin_result.jpeg"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Homepage hero eyebrow uses U+2019 curly apostrophes ('SIP \\u2019N\\u2019 DINE \\u00b7 SECTOR 7' in frontend) while backend /api/home hero.eyebrow uses straight ASCII apostrophe ('SIP 'N' DINE \\u00b7 SECTOR 7'). Not user-visible today because the home screen renders a hard-coded string, but if UI ever binds to hero.eyebrow the punctuation will flip. Consider standardising on one form."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_sip_n_dine.py",
+    "/app/test_reports/pytest/pytest_results.xml",
+    "/app/test_reports/iteration_2.json"
+  ],
+  "success_rate": {"backend": "100% (12/12)", "frontend": "100% (all requested flows)"},
+  "seed_data_creation": "Created disposable TEST_qa_*@sipndine.com customer and one TEST inquiry via public API; no cleanup endpoint exists but records are prefixed for identification.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Preview: https://mobile-app-staging-29.preview.emergentagent.com. Backend URL exposed as EXPO_PUBLIC_BACKEND_URL in frontend/.env. Redemption codes expire in 60 seconds \\u2014 keep Playwright latency < ~40s between claim and admin-verify. Admin route is /admin; keypad testIDs are admin-key-{0..9|clear|back}; success card testID is admin-success.",
+  "rca_of_issue": "N/A \\u2014 no bugs found in this iteration."
+}
