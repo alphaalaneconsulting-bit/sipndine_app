@@ -1,11 +1,44 @@
 import { SymbolView } from "expo-symbols";
+import Ionicons from "@react-native-vector-icons/ionicons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Pressable, Text, View, type PressableProps, type ViewStyle } from "react-native";
+import { Platform, Pressable, Text, View, type PressableProps, type ViewStyle } from "react-native";
 import { makeStyles, useTheme } from "@/src/theme";
+
+// SF Symbol name -> Ionicons glyph, so icons render on Android and web too.
+const IONICON_FOR_SF: Record<string, string> = {
+  "bell.fill": "notifications",
+  "bell.badge.fill": "notifications",
+  checkmark: "checkmark",
+  "checkmark.circle.fill": "checkmark-circle",
+  "checkmark.seal.fill": "ribbon",
+  "chevron.left": "chevron-back",
+  "chevron.right": "chevron-forward",
+  "exclamationmark.triangle.fill": "warning",
+  "lock.shield.fill": "shield-checkmark",
+  "message.fill": "chatbubble-ellipses",
+  "phone.fill": "call",
+  qrcode: "qr-code",
+  "qrcode.viewfinder": "scan",
+  sparkles: "sparkles",
+  "wave.3.right": "wifi",
+  "arrow.up.right": "arrow-forward",
+  "bag.fill": "bag-handle",
+  "book.pages.fill": "book",
+  "fork.knife": "restaurant",
+  "person.3.fill": "people",
+  "photo.on.rectangle.angled": "images",
+  "star.fill": "star",
+  "tag.fill": "pricetag",
+  "wallet.pass.fill": "wallet",
+  "house.fill": "home",
+  "ellipsis.circle.fill": "ellipsis-horizontal-circle",
+};
 
 export function AppIcon({ name, size = 20, color }: { name: string; size?: number; color?: string }) {
   const { colors } = useTheme();
-  return <SymbolView name={name as never} size={size} tintColor={color ?? colors.onSurface} />;
+  const tint = color ?? colors.onSurface;
+  if (Platform.OS === "ios") return <SymbolView name={name as never} size={size} tintColor={tint} />;
+  return <Ionicons name={(IONICON_FOR_SF[name] ?? "ellipse") as never} size={size} color={tint} />;
 }
 
 export function GlassCard({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {

@@ -54,3 +54,6 @@ Warm dark-brown hospitality palette pulled from the client walkthrough video: `#
 - Optional: member-facing loyalty tier progression animations.
 - Optional: manager availability calendar.
 - Optional: push notifications for new offers (needs Emergent-managed push key + real device build).
+
+## Icons
+- `AppIcon` renders SF Symbols on iOS and Ionicons (@react-native-vector-icons/ionicons) on Android/web via a name map in src/components/ui.tsx.
