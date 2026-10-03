@@ -81,6 +81,10 @@ const dark = {
   border: "#4E3A30",
   borderStrong: "#D4A86A",
   divider: "#3A2A24",
+
+  // Image scrims so copy stays legible over photos.
+  scrim: "rgba(42,30,24,0.58)",
+  scrimStrong: "rgba(42,30,24,0.72)",
 };
 
 export type ThemeColors = typeof dark;

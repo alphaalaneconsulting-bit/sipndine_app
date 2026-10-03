@@ -1,134 +1,123 @@
-"""Full backend regression for Sip 'N' Dine rebrand + admin verify flow."""
+"""Backend contract tests for Sip 'n' Dine (run against the preview URL)."""
 import os
 import uuid
 
 import pytest
 import requests
 
-
-BASE_URL = (os.environ.get("EXPO_BACKEND_URL") or os.environ.get("EXPO_PUBLIC_BACKEND_URL") or "https://mobile-app-staging-29.preview.emergentagent.com").rstrip("/")
-
-
-def _no_id(value):
-    if isinstance(value, dict):
-        assert "_id" not in value, f"MongoDB _id leaked: keys={list(value.keys())}"
-        for v in value.values():
-            _no_id(v)
-    elif isinstance(value, list):
-        for v in value:
-            _no_id(v)
+BASE_URL = (os.environ.get("EXPO_BACKEND_URL") or os.environ.get("EXPO_PUBLIC_BACKEND_URL") or "http://localhost:8001").rstrip("/")
+ADMIN = {"email": "info@sipndine.com", "password": "sipndine2026"}
 
 
 @pytest.fixture(scope="module")
 def api():
-    s = requests.Session()
-    s.headers.update({"Content-Type": "application/json"})
-    return s
+    return requests.Session()
+
+
+@pytest.fixture(scope="module")
+def admin_headers(api):
+    res = api.post(f"{BASE_URL}/api/admin/login", json=ADMIN, timeout=15)
+    assert res.status_code == 200, res.text
+    return {"Authorization": f"Bearer {res.json()['access_token']}"}
 
 
 @pytest.fixture(scope="module")
 def member(api):
-    email = f"TEST_qa_{uuid.uuid4().hex[:8]}@sipndine.com"
-    r = api.post(f"{BASE_URL}/api/auth/sign-in", json={
-        "name": "QA Tester", "email": email, "phone": "+911234567890",
-    }, timeout=15)
-    assert r.status_code == 200, r.text
-    body = r.json()
-    _no_id(body)
-    assert body["customer_id"] and body["email"] == email.lower()
-    assert body["name"] == "QA Tester"
-    return body
+    payload = {"name": "Pytest Guest", "email": f"pytest-{uuid.uuid4().hex[:6]}@example.com", "phone": "9876500000", "device_id": "dev_pytest"}
+    res = api.post(f"{BASE_URL}/api/auth/sign-in", json=payload, timeout=15)
+    assert res.status_code == 200, res.text
+    return res.json()
 
 
-# 1) GET /api/home returns hero + offers + gallery + notifications
-def test_home_shape(api):
-    r = api.get(f"{BASE_URL}/api/home", timeout=15)
-    assert r.status_code == 200
-    body = r.json()
-    for key in ("hero", "offers", "gallery", "notifications"):
-        assert key in body and body[key], f"missing {key}"
-    assert body["hero"]["eyebrow"] == "SIP 'N' DINE · SECTOR 7"
-    _no_id(body)
+def test_home_payload(api):
+    data = api.get(f"{BASE_URL}/api/home", timeout=15).json()
+    assert data["settings"]["brand_name"]
+    assert data["settings"]["whatsapp"] and data["settings"]["address"]
+    assert data["favourites"] and data["new_additions"] and data["offers"] and data["gallery"]
+    assert all("_id" not in item for item in data["favourites"])
 
 
-# 2) Collection endpoints return lists without _id
-@pytest.mark.parametrize("path", ["/offers", "/gallery", "/notifications", "/managers"])
-def test_collections(api, path):
-    r = api.get(f"{BASE_URL}/api{path}", timeout=15)
-    assert r.status_code == 200
-    body = r.json()
-    assert isinstance(body, list) and body
-    _no_id(body)
+def test_menu_and_image_proxy(api):
+    menu = api.get(f"{BASE_URL}/api/menu", timeout=15).json()
+    assert len(menu) >= 10
+    with_image = next(item for item in menu if item.get("image"))
+    res = api.get(f"{BASE_URL}/api/files/{with_image['image']}", timeout=30)
+    assert res.status_code == 200 and res.headers["content-type"].startswith("image/")
 
 
-# 3) sign-in returns Customer object
-def test_sign_in_returns_customer(member):
-    assert member["tier"] and isinstance(member["points"], int)
+def test_track_open(api):
+    res = api.post(f"{BASE_URL}/api/track", json={"device_id": "dev_pytest", "platform": "test"}, timeout=15)
+    assert res.status_code == 200
 
 
-# 4) claim returns redemption with 6-digit code + 60s expiry
-def test_claim_buffet_sunday_returns_code(api, member):
-    r = api.post(f"{BASE_URL}/api/offers/buffet-sunday/claim",
-                 json={"customer_id": member["customer_id"]}, timeout=15)
-    assert r.status_code == 200, r.text
-    body = r.json()
-    _no_id(body)
-    assert body["code"].isdigit() and len(body["code"]) == 6
-    assert body["expires_at"] and body["offer_id"] == "buffet-sunday"
-    pytest.shared_code = body["code"]
+def test_reservation_requires_member(api, member):
+    anon = api.post(f"{BASE_URL}/api/reservations", json={"customer_id": "nope", "date": "Today", "time": "8:00 PM", "party_size": "2"}, timeout=15)
+    assert anon.status_code == 401
+    ok = api.post(f"{BASE_URL}/api/reservations", json={"customer_id": member["customer_id"], "date": "Today", "time": "8:00 PM", "party_size": "2", "occasion": "Birthday", "note": "window"}, timeout=15)
+    assert ok.status_code == 200 and ok.json()["status"] == "Requested"
+    mine = api.get(f"{BASE_URL}/api/reservations/mine/{member['customer_id']}", timeout=15).json()
+    assert mine and mine[0]["customer_phone"] == "9876500000"
 
 
-# 5) verify success + offer_title + discount + member_name
-def test_verify_success(api, member):
-    code = pytest.shared_code
-    r = api.post(f"{BASE_URL}/api/redemptions/verify", json={"code": code}, timeout=15)
-    assert r.status_code == 200, r.text
-    body = r.json()
-    _no_id(body)
-    assert body["success"] is True
-    assert body["offer_title"] == "Sunday slow brunch"
-    assert body["discount"] == "20% off"
-    assert body["member_name"] == "QA Tester"
+def test_claim_verify_and_anti_misuse(api, member, admin_headers):
+    offers = api.get(f"{BASE_URL}/api/offers", timeout=15).json()
+    offer_id = offers[0]["offer_id"]
+    anon = api.post(f"{BASE_URL}/api/offers/{offer_id}/claim", json={"customer_id": "ghost"}, timeout=15)
+    assert anon.status_code == 401
+    claim = api.post(f"{BASE_URL}/api/offers/{offer_id}/claim", json={"customer_id": member["customer_id"]}, timeout=15)
+    assert claim.status_code == 200
+    code = claim.json()["code"]
+    assert len(code) == 6
+    # same active code is returned on re-claim
+    again = api.post(f"{BASE_URL}/api/offers/{offer_id}/claim", json={"customer_id": member["customer_id"]}, timeout=15).json()
+    assert again["code"] == code
+    # verify requires staff token
+    assert api.post(f"{BASE_URL}/api/admin/verify", json={"code": code}, timeout=15).status_code == 401
+    verified = api.post(f"{BASE_URL}/api/admin/verify", json={"code": code}, headers=admin_headers, timeout=15)
+    assert verified.status_code == 200 and verified.json()["member_phone"] == "9876500000"
+    # second use rejected
+    assert api.post(f"{BASE_URL}/api/admin/verify", json={"code": code}, headers=admin_headers, timeout=15).status_code == 409
+    # daily cap: a new claim on the same offer is blocked for 24h
+    capped = api.post(f"{BASE_URL}/api/offers/{offer_id}/claim", json={"customer_id": member["customer_id"]}, timeout=15)
+    assert capped.status_code == 429
+    assert api.post(f"{BASE_URL}/api/admin/verify", json={"code": "000000"}, headers=admin_headers, timeout=15).status_code == 404
 
 
-# 6) Retry same code -> 409 already redeemed
-def test_verify_replay_409(api):
-    r = api.post(f"{BASE_URL}/api/redemptions/verify",
-                 json={"code": pytest.shared_code}, timeout=15)
-    assert r.status_code == 409, r.text
-    assert "already" in r.json()["detail"].lower()
+def test_admin_login_and_guards(api):
+    assert api.post(f"{BASE_URL}/api/admin/login", json={"email": ADMIN["email"], "password": "wrong"}, timeout=15).status_code == 401
+    assert api.get(f"{BASE_URL}/api/admin/stats", timeout=15).status_code == 401
+    assert api.get(f"{BASE_URL}/api/admin/stats", headers={"Authorization": "Bearer garbage"}, timeout=15).status_code == 401
 
 
-# 7) verify "000000" -> 404
-def test_verify_unknown_code_404(api):
-    r = api.post(f"{BASE_URL}/api/redemptions/verify",
-                 json={"code": "000000"}, timeout=15)
-    assert r.status_code == 404, r.text
-    assert "not found" in r.json()["detail"].lower()
+def test_admin_settings_roundtrip(api, admin_headers):
+    settings = api.get(f"{BASE_URL}/api/admin/settings", headers=admin_headers, timeout=15).json()
+    original = settings["hours"]
+    settings["hours"] = "Pytest hours"
+    saved = api.put(f"{BASE_URL}/api/admin/settings", json=settings, headers=admin_headers, timeout=15)
+    assert saved.status_code == 200 and saved.json()["hours"] == "Pytest hours"
+    assert api.get(f"{BASE_URL}/api/settings", timeout=15).json()["hours"] == "Pytest hours"
+    settings["hours"] = original
+    api.put(f"{BASE_URL}/api/admin/settings", json=settings, headers=admin_headers, timeout=15)
 
 
-# 8) inquiry WITHOUT valid customer_id -> 401
-def test_inquiry_requires_membership(api):
-    managers = api.get(f"{BASE_URL}/api/managers", timeout=15).json()
-    r = api.post(f"{BASE_URL}/api/inquiries", json={
-        "customer_id": "cust_does_not_exist",
-        "manager_id": managers[0]["manager_id"],
-        "offering": "TEST Banqueting", "date": "2026-12-20", "guests": "30",
-        "note": "TEST unauth",
-    }, timeout=15)
-    assert r.status_code == 401, f"expected 401, got {r.status_code}: {r.text}"
+def test_admin_content_crud(api, admin_headers):
+    created = api.post(f"{BASE_URL}/api/admin/content/menu", json={"name": "Pytest dish", "price": "₹1", "category": "Starters", "is_available": True, "sort_order": 999}, headers=admin_headers, timeout=15)
+    assert created.status_code == 200
+    item_id = created.json()["item_id"]
+    assert any(m["item_id"] == item_id for m in api.get(f"{BASE_URL}/api/menu", timeout=15).json())
+    updated = api.put(f"{BASE_URL}/api/admin/content/menu/{item_id}", json={"name": "Pytest dish 2", "is_available": False}, headers=admin_headers, timeout=15)
+    assert updated.status_code == 200 and updated.json()["name"] == "Pytest dish 2"
+    assert not any(m["item_id"] == item_id for m in api.get(f"{BASE_URL}/api/menu", timeout=15).json())
+    assert api.delete(f"{BASE_URL}/api/admin/content/menu/{item_id}", headers=admin_headers, timeout=15).status_code == 200
+    assert api.delete(f"{BASE_URL}/api/admin/content/menu/{item_id}", headers=admin_headers, timeout=15).status_code == 404
+    assert api.get(f"{BASE_URL}/api/admin/content/unknown", headers=admin_headers, timeout=15).status_code == 404
 
 
-# 9) inquiry WITH valid customer_id -> 200 with Received
-def test_inquiry_success(api, member):
-    managers = api.get(f"{BASE_URL}/api/managers", timeout=15).json()
-    r = api.post(f"{BASE_URL}/api/inquiries", json={
-        "customer_id": member["customer_id"],
-        "manager_id": managers[0]["manager_id"],
-        "offering": "TEST Banqueting", "date": "2026-12-20", "guests": "30",
-        "note": "TEST",
-    }, timeout=15)
-    assert r.status_code == 200, r.text
-    body = r.json()
-    _no_id(body)
-    assert body["status"] == "Received"
+def test_admin_lists(api, admin_headers, member):
+    customers = api.get(f"{BASE_URL}/api/admin/customers", headers=admin_headers, timeout=15).json()
+    assert any(c["customer_id"] == member["customer_id"] for c in customers["customers"])
+    reservations = api.get(f"{BASE_URL}/api/admin/reservations", headers=admin_headers, timeout=15).json()
+    target = next(r for r in reservations if r["customer_name"] == "Pytest Guest")
+    assert api.patch(f"{BASE_URL}/api/admin/reservations/{target['reservation_id']}", json={"status": "Confirmed"}, headers=admin_headers, timeout=15).status_code == 200
+    log = api.get(f"{BASE_URL}/api/admin/redemptions", headers=admin_headers, timeout=15).json()
+    assert log and "code" not in log[0]
